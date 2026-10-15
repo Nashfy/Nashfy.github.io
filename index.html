@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nash Portfolio</title>
+<meta name="description" content="Muhammad Naim Shah (Nash), Information Systems (Intelligent Systems Engineering) student at UiTM building machine-learning systems and apps.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one night sky for the whole page. A star-atlas hero where each constellation
+   is a project, then sections that scroll over a fixed, slowly drifting starfield. */
+:root{
+  color-scheme:dark;
+  --bg:#07050f; --surface:rgba(14,10,30,.82); --fg:#ece7ff; --muted:#a39bc4;
+  --accent:#c4b5fd; --line:rgba(196,181,253,.18); --soft:rgba(196,181,253,.08);
+  --space:#07050f; --ink-on-space:#ece7ff; --dim-on-space:#b9b2d8; --glow:#c4b5fd;
+  --display:"Instrument Serif",Georgia,serif;
+  --body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:16px/1.65 var(--body);margin:0}
+#field{position:fixed;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none}
+a{color:var(--accent);text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:2px}
+.wrap{max-width:1080px;margin:0 auto;padding-inline:clamp(16px,4vw,40px)}
+h1,h2,h3{font-family:var(--display);font-weight:400;text-wrap:balance;line-height:1.05;margin:0}
+h2{font-size:clamp(2.2rem,5vw,3.4rem);margin-bottom:clamp(28px,4vw,48px)}
+.meta{font:400 .85rem/1.45 var(--mono);color:var(--muted)}
+
+/* ---------- Hero: star atlas ---------- */
+.hero{position:relative;background:radial-gradient(120% 100% at 70% 30%,#140d2b,var(--space) 65%);color:var(--ink-on-space);overflow:hidden;min-height:max(620px,min(100vh,860px));display:flex;flex-direction:column}
+#sky{position:absolute;inset:0;width:100%;height:100%;cursor:crosshair}
+.hero>.wrap{width:100%}
+nav{position:relative;display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding-block:22px;flex-wrap:wrap}
+.logo{font:400 1.6rem var(--display);color:#fff;text-decoration:none}
+nav ul{display:flex;gap:clamp(14px,3vw,28px);list-style:none;margin:0;padding:0}
+nav ul a{color:var(--dim-on-space);text-decoration:none;font-size:.92rem}
+nav ul a:hover{color:#fff}
+.hero-body{position:relative;flex:1;display:flex;flex-direction:column;justify-content:flex-end;gap:18px;padding-block:40px 64px;max-width:520px;pointer-events:none}
+.hero-body a{pointer-events:auto}
+.hero h1{font-size:clamp(3.6rem,10vw,7rem);letter-spacing:-.01em}
+.hero h1 i{color:var(--glow)}
+.hero p{color:var(--dim-on-space);font-size:1.05rem;margin:0;max-width:46ch}
+.hero .roles{color:var(--ink-on-space);font-size:1.15rem}
+.hero .roles b{font-weight:600;color:#fff}
+.btn.alt{background:none;color:#fff;box-shadow:inset 0 0 0 1px rgba(236,231,255,.5)}
+.btn.alt:hover{background:rgba(236,231,255,.1)}
+.ctas{display:flex;gap:20px;flex-wrap:wrap;align-items:center}
+.btn{display:inline-block;padding:11px 18px;border-radius:3px;background:#fff;color:var(--space);font-weight:600;text-decoration:none}
+.btn:hover{background:var(--glow)}
+.ctas .plain{color:var(--ink-on-space)}
+.readout{position:absolute;right:clamp(16px,4vw,40px);bottom:20px;font:400 .72rem var(--mono);color:var(--dim-on-space);pointer-events:none}
+
+/* constellation name tags, positioned by JS over the canvas */
+.tag{position:absolute;left:0;top:0;translate:-50% 0;border:0;background:none;padding:4px 6px;text-align:center;color:var(--ink-on-space);cursor:pointer;line-height:1.15;white-space:nowrap}
+.tag b{display:block;font:italic 400 1.35rem var(--display)}
+.tag small{font:400 .74rem var(--mono);color:var(--dim-on-space);letter-spacing:.03em}
+.tag:hover b,.tag[aria-expanded="true"] b{color:#fff;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:4px}
+
+/* info plate that opens when a constellation is picked */
+.plate{position:absolute;right:clamp(16px,4vw,40px);bottom:52px;width:min(360px,calc(100% - 32px));background:rgba(10,7,22,.88);backdrop-filter:blur(6px);border:1px solid rgba(196,181,253,.3);border-radius:4px;padding:20px 22px;z-index:2}
+.plate[hidden]{display:none}
+.plate h3{font-size:1.9rem;margin:2px 0 8px;color:#fff}
+.plate p{margin:0 0 14px;color:var(--dim-on-space);font-size:.95rem}
+.plate .meta{color:var(--glow)}
+.plate a{color:#fff;font-weight:500}
+.live{font-weight:600}
+.plate .x{position:absolute;top:8px;right:8px;background:none;border:0;color:var(--dim-on-space);font-size:1.3rem;line-height:1;padding:6px 8px;cursor:pointer}
+.plate .x:hover{color:#fff}
+
+/* ---------- Sections ---------- */
+section.block{padding-block:clamp(64px,10vw,120px)}
+.about{display:grid;grid-template-columns:1.3fr 1fr;gap:clamp(24px,5vw,72px);align-items:start}
+.about>*{min-width:0}
+.about p{margin:0 0 1em;max-width:62ch}
+.ringed{width:clamp(64px,8vw,96px);height:auto;margin-left:16px;vertical-align:middle;animation:bob 7s ease-in-out infinite}
+@keyframes bob{50%{translate:0 -7px;rotate:3deg}}
+@media (prefers-reduced-motion:reduce){.ringed{animation:none}}
+.facts{margin:0;border-top:1px solid var(--line)}
+.facts div{display:flex;justify-content:space-between;gap:16px;padding-block:13px;border-bottom:1px solid var(--line)}
+.facts dt{color:var(--muted)} .facts dd{margin:0;font-weight:500;text-align:right}
+
+/* Skills orbit */
+.skills{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(24px,5vw,64px);align-items:center}
+.orbit{position:relative;width:100%;max-width:460px;aspect-ratio:1;margin-inline:auto;cursor:grab;touch-action:pan-y;user-select:none}
+.orbit.dragging{cursor:grabbing}
+/* galaxy lives inside the orbit so it scrolls with it exactly; drawn once, never moves */
+.orbit-gal{position:absolute;left:50%;top:50%;width:210%;height:210%;translate:-50% -50%;pointer-events:none}
+.core{position:absolute;inset:41%;border-radius:50%;background:radial-gradient(circle at 38% 38%,#fff,#e4dcff 35%,#9f86f0 80%);box-shadow:0 0 36px 4px rgba(196,181,253,.3);display:grid;place-items:center;font:italic 400 1.15rem var(--display);color:var(--space);transition:scale .3s}
+.orbit:hover .core{scale:1.06}
+/* JS sets --a on each ring; labels counter-rotate so they stay upright */
+.ring{position:absolute;border:1px dashed var(--line);border-radius:50%;rotate:var(--a,0deg);pointer-events:none} /* outer rings would cover inner planets */
+.ring:nth-of-type(2){inset:30%}
+.ring:nth-of-type(3){inset:20%}
+.ring:nth-of-type(4){inset:10%}
+.ring:nth-of-type(5){inset:0}
+.planet{position:absolute;top:0;left:50%;translate:-50% -50%;border:0;padding:0;background:none;cursor:pointer;pointer-events:auto}
+.planet.b{top:100%}
+.planet span{display:block;padding:6px 12px;border-radius:3px;background:var(--surface);border:1px solid var(--line);color:var(--fg);font:500 .78rem var(--body);white-space:nowrap;rotate:calc(-1*var(--a,0deg));transition:background .2s,color .2s,scale .2s}
+.planet[aria-pressed="true"] span,.planet:hover span{background:var(--accent);color:var(--space);border-color:var(--accent)}
+.planet:hover span{scale:1.08}
+.orbit-hint{text-align:center;margin:12px 0 0}
+.panel{border-top:1px solid var(--accent);padding-top:20px;min-height:220px}
+.panel h3{font-size:2rem;margin-bottom:6px}
+.panel p{color:var(--muted);margin:0 0 18px}
+.chips{display:flex;flex-wrap:wrap;gap:6px 8px;list-style:none;margin:0;padding:0}
+.chips li{border:1px solid var(--line);color:var(--fg);padding:3px 10px;border-radius:3px;font:400 .78rem var(--mono)}
+
+/* Rows: shared by projects and the timeline, date/meta on the left */
+.rows{list-style:none;margin:0;padding:0}
+.row{display:grid;grid-template-columns:200px minmax(0,1fr);gap:8px clamp(20px,4vw,48px);padding-block:30px;border-top:1px solid var(--line);scroll-margin-top:24px}
+.row:last-child{border-bottom:1px solid var(--line)}
+.row h3{font-size:clamp(1.6rem,3vw,2.1rem);margin-bottom:10px}
+.row p{margin:0 0 14px;color:var(--muted);max-width:64ch}
+.row .meta{padding-top:6px}
+.row.flash{animation:flash 1.6s ease-out}
+@keyframes flash{from{background:var(--soft)}}
+.journey .meta::before{content:"";display:block;width:var(--s);height:var(--s);border-radius:50%;margin-bottom:12px;
+  background:radial-gradient(circle at 35% 30%,hsl(var(--h) 90% 88%),hsl(var(--h) 55% 50%) 55%,hsl(var(--h) 60% 16%));opacity:.3;transition:opacity 1s,box-shadow 1s}
+.journey .seen .meta::before{opacity:1;box-shadow:0 0 22px hsl(var(--h) 85% 70% / .45)}
+.metrics{display:flex;flex-wrap:wrap;gap:12px 32px;margin:0 0 16px;padding:0;list-style:none;font:400 .85rem var(--mono);color:var(--muted);font-variant-numeric:tabular-nums}
+.metrics b{display:block;color:var(--fg);font:400 1.6rem var(--display)}
+
+/* Contact: the page ends on a planet's horizon, the footer is its surface */
+.contact{position:relative;isolation:isolate;overflow:hidden;padding-bottom:clamp(160px,22vw,240px)!important}
+.contact::before{content:"";position:absolute;z-index:-1;left:50%;translate:-50% 0;top:calc(100% - clamp(70px,10vw,120px));width:max(2600px,320vw);aspect-ratio:1;border-radius:50%;
+  background:linear-gradient(#2d2163,#0c0920 70px);box-shadow:0 -8px 70px rgba(167,139,250,.35),inset 0 1px 0 rgba(216,205,255,.7)}
+.contact h2{font-size:clamp(2.8rem,8vw,5.5rem);margin-bottom:20px}
+.contact p{color:var(--muted);margin:0 0 24px;max-width:56ch}
+.mail{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:24px}
+.mail a{font:400 clamp(1.1rem,3vw,1.5rem) var(--mono);color:var(--fg);overflow-wrap:anywhere}
+.mail button{font:500 .85rem var(--body);background:none;color:var(--fg);border:1px solid var(--line);border-radius:3px;padding:7px 12px;cursor:pointer}
+.mail button:hover{border-color:var(--fg)}
+.links{display:flex;gap:24px;flex-wrap:wrap}
+footer{padding-block:32px;background:#0c0920}
+
+@media (max-width:900px){.hero-body{padding-top:330px}} /* room for the star map above the title; JS switches layout at the same point */
+#skills{overflow-x:clip} /* outer labels swing past the orbit edge; never let them widen the page */
+@media (max-width:760px){
+  .about,.skills,.row{grid-template-columns:1fr}
+  .orbit{width:calc(100% - 140px)}
+  .row .meta{padding-top:0}
+  .hero-body{padding-bottom:56px}
+  .planet span{padding:5px 8px;font-size:.7rem}
+  .tag b{font-size:1.15rem}
+}
+</style>
+
+<canvas id="field" aria-hidden="true"></canvas>
+<header class="hero">
+  <canvas id="sky" aria-hidden="true"></canvas>
+  <div class="wrap">
+    <nav aria-label="Main">
+      <a class="logo" href="#top">Nash</a>
+      <ul>
+        <li><a href="#about">About</a></li>
+        <li><a href="#skills">Skills</a></li>
+        <li><a href="#work">Projects</a></li>
+        <li><a href="#contact">Contact</a></li>
+        <!-- <li><a href="Muhammad-Naim-Shah-Resume.pdf" download>Résumé</a></li> -->
+      </ul>
+    </nav>
+  </div>
+  <div id="tags" aria-label="Project constellations"></div>
+  <div class="wrap" style="flex:1;display:flex">
+    <div class="hero-body" id="top">
+      <h1>Naim Shah,<br><i>or just Nash.</i></h1>
+      <p class="roles">Open to <b>AI Engineer</b> and <b>Software Developer</b> roles in Malaysia.</p>
+      <p>Final-year Information Systems student at UiTM, majoring in Intelligent Systems Engineering. I build machine-learning systems and the apps around them, and I'm starting on a Unity game. Each constellation up there is something I've made. Pick one.</p>
+      <div class="ctas">
+        <a class="btn" href="#work">All projects</a>
+        <!-- résumé hidden until the PDF is fixed: <a class="btn alt" href="Muhammad-Naim-Shah-Resume.pdf" download>Download résumé</a> -->
+        <a class="plain" href="#contact">Get in touch</a>
+      </div>
+    </div>
+  </div>
+  <aside class="plate" id="plate" hidden aria-live="polite">
+    <button class="x" type="button" aria-label="Close">×</button>
+    <span class="meta" id="pl-meta"></span>
+    <h3 id="pl-name"></h3>
+    <p id="pl-text"></p>
+    <div class="ctas"><a id="pl-live" href="#" target="_blank" rel="noopener" hidden>Live app ↗</a><a id="pl-link" href="#work">Read the full write-up ↓</a></div>
+  </aside>
+  <div class="readout" id="readout">RA 00h 00m · DEC +00°</div>
+</header>
+
+<main>
+  <section class="block" id="about">
+    <div class="wrap about">
+      <div>
+        <h2>About<svg class="ringed" viewBox="0 0 120 70" aria-hidden="true"><defs><radialGradient id="pg" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#fbe7ff"/><stop offset=".45" stop-color="#b48cf0"/><stop offset="1" stop-color="#2b1a5e"/></radialGradient></defs><g transform="rotate(-16 60 35)"><ellipse cx="60" cy="35" rx="54" ry="11" fill="none" stroke="#c4b5fd" stroke-opacity=".55" stroke-width="3"/><circle cx="60" cy="35" r="22" fill="url(#pg)"/><path d="M6 35A54 11 0 0 0 114 35" fill="none" stroke="#e4dcff" stroke-opacity=".85" stroke-width="3"/></g></svg></h2>
+        <p>I'm a final-year Information Systems student majoring in Intelligent Systems Engineering at Universiti Teknologi MARA (UiTM), Shah Alam. My final-year project, <strong>PENTA</strong>, predicts professional League of Legends match outcomes with a neural network and CatBoost ensemble, then explains each matchup through an LLM analyst.</p>
+        <p>I enjoy building applications and websites, and I'm currently an IT intern at ProPain Holdings. Next, I'm looking for a role as an <strong>AI Engineer</strong> or <strong>Software Developer</strong>. I'm based in Bera, Pahang, and open to opportunities in Selangor, Kuala Lumpur or anywhere else.</p>
+      </div>
+      <dl class="facts">
+        <div><dt>Studying</dt><dd>BIS (Hons.) Intelligent Systems Eng., UiTM</dd></div>
+        <div><dt>Focus</dt><dd>ML · Data · Web apps</dd></div>
+        <div><dt>CGPA</dt><dd>3.57 · 5× Dean's List</dd></div>
+        <div><dt>Based in</dt><dd>Bera, Pahang, Malaysia</dd></div>
+        <div><dt>Open to</dt><dd>AI Engineer · Software Developer</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <section class="block" id="skills">
+    <div class="wrap">
+      <h2>Skills</h2>
+      <div class="skills">
+        <div>
+          <div class="orbit" id="orbit">
+            <canvas class="orbit-gal" id="orbit-gal" aria-hidden="true"></canvas>
+            <div class="core">me</div>
+            <div class="ring"><button class="planet" data-k="ml" aria-pressed="true"><span>Machine Learning</span></button></div>
+            <div class="ring"><button class="planet" data-k="code" aria-pressed="false"><span>Programming</span></button><button class="planet b" data-k="ai" aria-pressed="false"><span>LLMs &amp; AI</span></button></div>
+            <div class="ring"><button class="planet" data-k="data" aria-pressed="false"><span>Data &amp; Analytics</span></button><button class="planet b" data-k="web" aria-pressed="false"><span>Apps &amp; Deploy</span></button></div>
+            <div class="ring"><button class="planet" data-k="build" aria-pressed="false"><span>Games &amp; IoT</span></button><button class="planet b" data-k="more" aria-pressed="false"><span>Creative &amp; People</span></button></div>
+          </div>
+          <p class="orbit-hint meta">drag to spin · click a planet</p>
+        </div>
+        <div class="panel" aria-live="polite">
+          <h3 id="p-title"></h3>
+          <p id="p-text"></p>
+          <ul class="chips" id="p-chips"></ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="work">
+    <div class="wrap">
+      <h2>Projects</h2>
+      <div class="rows">
+        <article class="row" id="p-penta">
+          <span class="meta">2026<br>Final-year project</span>
+          <div>
+            <h3>PENTA: League of Legends match prediction</h3>
+            <p>Predicts the probability that blue side beats red side in professional matches, trained on 60,650 games from 2020–2026. A CatBoost and neural-network ensemble with isotonic calibration, so a 70% prediction really means 70%. SHAP explanations are turned into plain language by an LLM analyst with selectable Coach, Analyst and Betting personas.</p>
+            <ul class="metrics">
+              <li><b>64.65%</b>validation accuracy</li>
+              <li><b>52.8%</b>majority-class baseline</li>
+              <li><b>58,017</b>walk-forward predictions</li>
+              <li><b>0.013</b>calibration error (ECE)</li>
+            </ul>
+            <p><a class="live" href="https://penta-nash.streamlit.app/" target="_blank" rel="noopener">Try the live app ↗</a></p>
+            <ul class="chips"><li>Python</li><li>TensorFlow</li><li>CatBoost</li><li>SHAP</li><li>Streamlit</li><li>PostgreSQL</li><li>OpenRouter</li></ul>
+          </div>
+        </article>
+        <article class="row" id="p-game">
+          <span class="meta">In progress<br>Personal</span>
+          <div>
+            <h3>Untitled 2.5D game</h3>
+            <p>A 2.5D game I'm building in Unity in my spare time. It's still in its early phase, so expect updates here as it takes shape.</p>
+            <ul class="chips"><li>Unity</li><li>C#</li><li>2.5D</li></ul>
+          </div>
+        </article>
+        <article class="row" id="p-cliniq">
+          <span class="meta">Coursework<br>Team project</span>
+          <div>
+            <h3>ClinIQ Care: symptom-checker chatbot</h3>
+            <p>A rule-based decision-tree backend that maps reported symptoms to likely common illnesses and health advice. I built the clinical logic and worked with UI/UX teammates to connect it to a high-fidelity prototype.</p>
+            <ul class="chips"><li>Decision trees</li><li>Rule-based AI</li><li>Prototyping</li></ul>
+          </div>
+        </article>
+        <article class="row" id="p-hanger">
+          <span class="meta">Coursework<br>IoT</span>
+          <div>
+            <h3>Smart Laundry Hanger</h3>
+            <p>An Arduino hanger that pulls your laundry in automatically when its rain and light sensors detect bad weather. A companion Android app lets you override it remotely.</p>
+            <ul class="chips"><li>Arduino</li><li>Sensors</li><li>MIT App Inventor</li><li>Android</li></ul>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" style="padding-top:0">
+    <div class="wrap">
+      <h2>Education &amp; experience</h2>
+      <ol class="rows journey">
+        <li class="row" style="--h:265;--s:26px"><span class="meta">2026 – present</span><div><h3>IT Intern, ProPain Holdings</h3><p>Developing the company's application and managing its websites.</p></div></li>
+        <li class="row" style="--h:215;--s:22px"><span class="meta">Sep 2023 – present</span><div><h3>Bachelor of Information Systems (Hons.) Intelligent Systems Engineering, UiTM Shah Alam</h3><p>CGPA 3.57, with five Dean's List awards (four in a row). Jabatan Perkhidmatan Awam (JPA) scholarship recipient. Relevant courses: Machine Learning, Artificial Intelligence, Fuzzy Logic, Data Mining, Knowledge-Based Systems, Optimization Algorithms &amp; Applications, and Data Representation.</p></div></li>
+        <li class="row" style="--h:175;--s:17px"><span class="meta">Aug 2021 – May 2023</span><div><h3>Matriculation (Life Sciences), Pahang Matriculation College</h3><p>CGPA 3.79, MUET Band 4.0.</p></div></li>
+        <li class="row" style="--h:20;--s:14px"><span class="meta">Jan 2016 – Feb 2021</span><div><h3>Sijil Pelajaran Malaysia (SPM), SMK Felda Bukit Mendi</h3><p>Secondary school in Triang, Pahang.</p></div></li>
+        <li class="row" style="--h:320;--s:11px"><span class="meta">Coursera</span><div><h3>Certifications</h3><p>Google AI Professional Certificate and Google Advanced Data Analytics Professional Certificate.</p></div></li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="block contact" id="contact" style="padding-top:0">
+    <div class="wrap">
+      <h2>Get in touch</h2>
+      <p>I'm looking for AI engineer or software developer roles. Email is the best way to reach me.</p>
+      <div class="mail">
+        <a id="email" href="mailto:nashibrahim224@gmail.com">nashibrahim224@gmail.com</a>
+        <button id="copy" type="button">Copy</button>
+      </div>
+      <div class="links">
+        <a href="https://github.com/Nashfy" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://www.linkedin.com/in/naim-shah224" target="_blank" rel="noopener">LinkedIn</a>
+        <!-- <a href="Muhammad-Naim-Shah-Resume.pdf" download>Résumé (PDF)</a> -->
+      </div>
+    </div>
+  </section>
+</main>
+<footer><div class="wrap meta">© 2026 Muhammad Naim Shah</div></footer>
+
+<script>
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// ---------- Skills orbit ----------
+const SK={
+  ml:["Machine Learning","Models I've trained, calibrated, explained and backtested.",["TensorFlow","CatBoost","scikit-learn","Neural networks","Ensembles","SHAP","Isotonic calibration","Walk-forward backtesting","Decision trees","Rule-based systems"]],
+  code:["Programming","The languages I write in.",["Python","R","Java","C++","C#","JavaScript","SQL"]],
+  ai:["LLMs & AI","Wiring language models into products, and the AI tools I build with.",["OpenRouter","Hugging Face","Prompt design","LLM-generated insights","Google Antigravity"]],
+  data:["Data & Analytics","From raw logs to clean features, dashboards and insight.",["pandas","PostgreSQL","MongoDB","Feature engineering","Tableau","Power BI","Altair AI Studio"]],
+  web:["Apps & Deploy","Turning models into something people can click, and shipping it.",["Streamlit","HTML","CSS","Hugging Face Spaces","Docker","Git","PowerShell"]],
+  build:["Games & IoT","Things that move, on screen and off it.",["Unity","C#","2.5D","Arduino","Sensors","MIT App Inventor","Android"]],
+  more:["Creative & People","Design, editing, and the skills that make teams work.",["Canva","CapCut","Microsoft Office","Teamwork","Communication","Problem solving","Time management","Bahasa Melayu","English","Japanese (basic)"]]
+};
+const planets=document.querySelectorAll('.planet');
+function show(k){
+  const [t,d,c]=SK[k];
+  document.getElementById('p-title').textContent=t;
+  document.getElementById('p-text').textContent=d;
+  document.getElementById('p-chips').innerHTML=c.map(s=>`<li>${s}</li>`).join('');
+  planets.forEach(p=>p.setAttribute('aria-pressed',p.dataset.k===k));
+}
+planets.forEach(p=>{p.addEventListener('click',()=>{if(!dragged)show(p.dataset.k)});p.addEventListener('mouseenter',()=>show(p.dataset.k))});
+show('ml');
+
+// Orbit physics: auto-spin, slows (not stops) on hover, drag to fling with inertia
+const orb=document.getElementById('orbit'),rings=[...orb.querySelectorAll('.ring')];
+const SP=[22,-15,11,-8],ang=rings.map((_,i)=>i*55); // deg/s per ring, alternating direction
+let mult=1,goal=1,fling=0,drag=null,dragged=false,last=performance.now(),orbOn=true;
+const angAt=e=>{const r=orb.getBoundingClientRect();return Math.atan2(e.clientY-r.top-r.height/2,e.clientX-r.left-r.width/2)*180/Math.PI};
+const pull=i=>1-i*.12; // inner rings follow the drag harder, gives depth
+orb.addEventListener('pointerenter',()=>goal=.3);
+orb.addEventListener('pointerleave',()=>goal=1);
+orb.addEventListener('pointerdown',e=>{drag={a:angAt(e),t:e.timeStamp,x:e.clientX,y:e.clientY,id:e.pointerId};dragged=false;fling=0});
+addEventListener('pointermove',e=>{if(!drag||e.pointerId!==drag.id)return;
+  if(!dragged&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)<6)return; // small moves still count as clicks
+  if(!dragged){dragged=true;orb.classList.add('dragging');orb.setPointerCapture(e.pointerId)}
+  const a=angAt(e),d=(a-drag.a+540)%360-180;
+  ang.forEach((_,i)=>ang[i]+=d*pull(i));
+  fling=d/Math.max(e.timeStamp-drag.t,8)*1000;drag.a=a;drag.t=e.timeStamp});
+const end=()=>{if(!drag)return;drag=null;orb.classList.remove('dragging');setTimeout(()=>dragged=false)};
+addEventListener('pointerup',end);addEventListener('pointercancel',end);
+function orbit(now){const dt=Math.min((now-last)/1000,.05);last=now;
+  mult+=(goal-mult)*.06;fling*=Math.pow(.15,dt);
+  rings.forEach((r,i)=>{if(!drag)ang[i]+=((reduce?0:SP[i]*mult)+fling*pull(i))*dt;r.style.setProperty('--a',ang[i]+'deg')});
+  if(ogSpr&&!reduce)drawOrbitGal(now*.00008);
+  if(orbOn)requestAnimationFrame(orbit)}
+new IntersectionObserver(([en])=>{const was=orbOn;orbOn=en.isIntersecting;if(orbOn&&!was){last=performance.now();requestAnimationFrame(orbit)}}).observe(orb);
+requestAnimationFrame(orbit);
+
+// ---------- Copy email ----------
+document.getElementById('copy').addEventListener('click',e=>{
+  const t=document.getElementById('email').textContent,b=e.currentTarget;
+  navigator.clipboard.writeText(t).then(()=>b.textContent='Copied',()=>{getSelection().selectAllChildren(document.getElementById('email'));b.textContent='Press Ctrl+C'});
+  setTimeout(()=>b.textContent='Copy',1800);
+});
+
+// ---------- Star atlas: background stars + one constellation per project ----------
+// st: star positions inside a unit box, ed: lines between stars, pos: centre within the map region, size: share of the region
+const CONS=[
+  {id:'penta',name:'Penta',sub:'ML · 2026',pos:[.45,.36],size:.44,
+   st:[[.5,0],[.98,.36],[.79,.94],[.21,.94],[.02,.36],[.5,.5]],ed:[[0,1],[1,2],[2,3],[3,4],[4,0],[5,0],[5,2],[5,3]],
+   meta:'Final-year project · 2026',text:'Predicts pro League of Legends match outcomes with a calibrated CatBoost and neural-network ensemble, then explains each prediction through an LLM analyst.',href:'#p-penta',live:'https://penta-nash.streamlit.app/'},
+  {id:'cliniq',name:'ClinIQ',sub:'AI · coursework',pos:[.88,.14],size:.2,
+   st:[[.5,.5],[.5,0],[.5,1],[0,.5],[1,.5]],ed:[[0,1],[0,2],[0,3],[0,4]],
+   meta:'Coursework · team project',text:'A symptom-checker chatbot. I built the rule-based decision tree that maps symptoms to likely common illnesses.',href:'#p-cliniq'},
+  {id:'hanger',name:'The Hanger',sub:'IoT · coursework',pos:[.86,.72],size:.22,
+   st:[[.62,0],[.5,.32],[0,.9],[1,.9]],ed:[[0,1],[1,2],[1,3],[2,3]],
+   meta:'Coursework · IoT',text:'An Arduino laundry hanger that retracts itself when its rain and light sensors sense bad weather, with an Android app for override.',href:'#p-hanger'},
+  {id:'game',name:'Uncharted',sub:'Unity · in progress',pos:[.12,.8],size:.2,dash:true,
+   st:[[0,.7],[.35,.25],[.7,.6],[1,.05]],ed:[[0,1],[1,2],[2,3]],
+   meta:'Personal · in progress',text:'A 2.5D game I am building in Unity. Still being mapped out, so this patch of sky is unfinished on purpose.',href:'#p-game'}
+];
+const cv=document.getElementById('sky'),x=cv.getContext('2d'),hero=cv.parentElement,ro=document.getElementById('readout');
+const tagBox=document.getElementById('tags'),plate=document.getElementById('plate');
+let nar=false,W,H,stars=[],shots=[],mx=-999,my=-999,px=0,py=0,t=0,on=true,hov=null,sel=null;
+// galaxies are drawn once into a face-on sprite, then tilted, squashed and spun per frame (thousands of dots per frame was ~7ms)
+function galSprite(R,pts,col){const c=document.createElement('canvas'),d=Math.min(devicePixelRatio||1,2);c.width=c.height=Math.ceil(R*2*d);
+  const g=c.getContext('2d');g.scale(d,d);g.globalCompositeOperation='lighter';
+  for(const p of pts){const r=p.d*R;g.fillStyle=col(p);g.fillRect(R+Math.cos(p.a)*r,R+Math.sin(p.a)*r,p.s,p.s)}return c}
+function drawGal(ctx,spr,R,x0,y0,tilt,squash,rot){ctx.save();ctx.translate(x0,y0);ctx.rotate(tilt);ctx.scale(1,squash);ctx.rotate(rot);ctx.drawImage(spr,-R,-R,R*2,R*2);ctx.restore()}
+let heroSpr=null,heroR=0;
+const gal=Array.from({length:1600},(_,i)=>{const d=Math.pow(Math.random(),.6);
+  return{d,a:(i%3)*2.094+d*5.2+(Math.random()-.5)*(1-d*.6),s:Math.random()*1.2+.3,l:Math.random()}});
+CONS.forEach(c=>{
+  const b=document.createElement('button');b.className='tag';b.type='button';b.setAttribute('aria-expanded','false');
+  b.innerHTML=`<b>${c.name}</b><small>${c.sub}</small>`;
+  b.addEventListener('click',()=>openC(c));
+  b.addEventListener('mouseenter',()=>{hov=c;kick()});b.addEventListener('mouseleave',()=>{hov=null;kick()});
+  b.addEventListener('focus',()=>{hov=c;kick()});b.addEventListener('blur',()=>{hov=null;kick()});
+  tagBox.appendChild(b);c.tag=b;
+});
+function size(){const r=Math.min(devicePixelRatio||1,2);W=cv.clientWidth;H=cv.clientHeight;cv.width=W*r;cv.height=H*r;x.setTransform(r,0,0,r,0,0);
+  stars=Array.from({length:Math.round(W*H/2600)},()=>({x:Math.random()*W,y:Math.random()*H,z:Math.random()*.8+.1,p:Math.random()*6.3}));
+  // map region: beside the title when there's room, otherwise above it
+  const hb=document.querySelector('.hero-body h1').getBoundingClientRect(),cr=cv.getBoundingClientRect();
+  const right=hb.left-cr.left+Math.min(hb.width,520),top=hb.top-cr.top,g=Math.max(16,W*.04);
+  nar=W-right<320;
+  const nb=document.querySelector('nav').getBoundingClientRect().bottom-cr.top;
+  const rx=nar?g:right+40,ry=nar?nb+20:H*.12,rw=nar?W-2*g:W-rx-g,rh=nar?top-ry-50:H*.76,u=Math.min(rw,rh);
+  for(const c of CONS){const s=c.size*u*(nar?1.15:1);c.cx=rx+c.pos[0]*rw;c.cy=ry+c.pos[1]*rh;c.r=s*.6+24;
+    c.pts=c.st.map(([a,b])=>[c.cx+(a-.5)*s,c.cy+(b-.5)*s]);c.ty=c.cy+s*.5+14}}
+function shoot(sx,sy){shots.push({x:sx,y:sy,vx:-(6+Math.random()*4),vy:3+Math.random()*2,life:1})}
+function openC(c){sel=c;
+  document.getElementById('pl-meta').textContent=c.meta;document.getElementById('pl-name').textContent=c.name==='Uncharted'?'Untitled game':c.name;
+  document.getElementById('pl-text').textContent=c.text;document.getElementById('pl-link').href=c.href;
+  const lv=document.getElementById('pl-live');lv.hidden=!c.live;if(c.live)lv.href=c.live;
+  CONS.forEach(o=>o.tag.setAttribute('aria-expanded',o===c));plate.hidden=false;kick()}
+function closeC(){sel=null;plate.hidden=true;CONS.forEach(o=>o.tag.setAttribute('aria-expanded','false'));kick()}
+plate.querySelector('.x').addEventListener('click',closeC);
+addEventListener('keydown',e=>{if(e.key==='Escape'&&sel)closeC()});
+document.getElementById('pl-link').addEventListener('click',()=>{const el=document.querySelector(sel.href);closeC();
+  if(el){el.classList.remove('flash');void el.offsetWidth;el.classList.add('flash')}});
+const kick=()=>{if(reduce)frame()};
+function frame(){
+  t++;px+=((mx<0?W/2:mx)-W/2-px)*.05;py+=((my<0?H/2:my)-H/2-py)*.05;
+  x.clearRect(0,0,W,H);
+  // galaxy, top left behind the nav, kept clear of the constellations
+  const gx=W*.22-px*.03,gy=H*.2-py*.03,R=Math.min(W,H)*.42;
+  x.globalCompositeOperation='lighter';
+  if(!nar){const cg=x.createRadialGradient(gx,gy,0,gx,gy,R*.35);cg.addColorStop(0,'rgba(237,233,254,.35)');cg.addColorStop(1,'rgba(124,58,237,0)');
+    x.fillStyle=cg;x.beginPath();x.ellipse(gx,gy,R*.35,R*.16,-.35,0,7);x.fill()}
+  if(!nar){if(Math.round(R)!==heroR){heroR=Math.round(R);heroSpr=galSprite(R,gal,p=>`hsla(${262-p.d*20},75%,${85-p.d*30+p.l*10}%,${(.72-p.d*.45)})`)}
+    drawGal(x,heroSpr,R,gx,gy,-.35,.42,t*.001)}
+  x.globalCompositeOperation='source-over';
+  for(const s of stars){const tw=.55+.45*Math.sin(t*.03+s.p);
+    x.fillStyle=`rgba(255,255,255,${s.z*tw*.85})`;x.beginPath();x.arc(s.x-px*s.z*.05,s.y-py*s.z*.05,s.z*1.2,0,7);x.fill()}
+  // constellations
+  const ox=-px*.03,oy=-py*.03;
+  for(const c of CONS){const lit=c===hov||c===sel;
+    x.setLineDash(c.dash?[3,6]:[]);x.lineWidth=lit?1.3:.8;x.strokeStyle=`rgba(196,181,253,${lit?.9:.38})`;
+    x.beginPath();for(const[a,b]of c.ed){x.moveTo(c.pts[a][0]+ox,c.pts[a][1]+oy);x.lineTo(c.pts[b][0]+ox,c.pts[b][1]+oy)}x.stroke();
+    x.setLineDash([]);
+    c.pts.forEach(([X,Y],i)=>{const tw=.8+.2*Math.sin(t*.04+i*1.7);
+      x.fillStyle=`rgba(196,181,253,${(lit?.28:.12)*tw})`;x.beginPath();x.arc(X+ox,Y+oy,lit?9:6,0,7);x.fill();
+      x.fillStyle='#fff';x.beginPath();x.arc(X+ox,Y+oy,(lit?2.6:1.9)*tw,0,7);x.fill()});
+    const hw=c.tag.offsetWidth/2;c.tag.style.transform=`translate(${Math.min(Math.max(c.cx+ox,hw+6),W-hw-6)}px,${c.ty+oy}px)`}
+  // shooting stars
+  if(Math.random()<.003)shoot(W*(.4+Math.random()*.6),Math.random()*H*.4);
+  shots=shots.filter(s=>s.life>0);
+  for(const s of shots){const gr=x.createLinearGradient(s.x,s.y,s.x-s.vx*14,s.y-s.vy*14);
+    gr.addColorStop(0,`rgba(255,255,255,${s.life})`);gr.addColorStop(1,'rgba(167,139,250,0)');
+    x.strokeStyle=gr;x.lineWidth=2;x.beginPath();x.moveTo(s.x,s.y);x.lineTo(s.x-s.vx*14,s.y-s.vy*14);x.stroke();
+    s.x+=s.vx;s.y+=s.vy;s.life-=.012}
+  if(on&&!reduce)requestAnimationFrame(frame);
+}
+const hit=()=>CONS.find(c=>Math.hypot(mx-c.cx,my-c.cy)<c.r)||null;
+hero.addEventListener('pointermove',e=>{const r=cv.getBoundingClientRect();mx=e.clientX-r.left;my=e.clientY-r.top;
+  if(e.target===cv){hov=hit();cv.style.cursor=hov?'pointer':'crosshair';kick()}
+  const ra=mx/W*24,dec=90-my/H*180;
+  ro.textContent=`RA ${String(ra|0).padStart(2,'0')}h ${String((ra%1*60)|0).padStart(2,'0')}m · DEC ${dec>=0?'+':'−'}${String(Math.abs(dec|0)).padStart(2,'0')}°`});
+hero.addEventListener('pointerleave',()=>{mx=my=-999;hov=null;kick()});
+cv.addEventListener('click',e=>{const r=cv.getBoundingClientRect();mx=e.clientX-r.left;my=e.clientY-r.top;const c=hit();
+  if(c)return openC(c);
+  if(sel)closeC();
+  for(let i=0;i<3;i++)shoot(mx+i*18,my-i*10);kick()});
+new IntersectionObserver(([en])=>{const was=on;on=en.isIntersecting;if(on&&!was&&!reduce)requestAnimationFrame(frame)}).observe(hero);
+addEventListener('resize',()=>{size();kick()});
+size();frame();
+
+// ---------- Page starfield: fixed behind every section, drifts at different depths as you scroll ----------
+const fc=document.getElementById('field'),fx=fc.getContext('2d');let FW,FH,DH,fs=[],comets=[],dust=[],lastSy=scrollY,vel=0;
+// spiral galaxy behind the skills orbit: two arms, warm core, blue rim
+const SG=Array.from({length:2600},(_,i)=>{const d=Math.pow(Math.random(),.55);
+  return{d,a:(i%2)*Math.PI+d*6+(Math.random()-.5)*(1.1-d*.7),s:Math.random()*1.5+.3,l:Math.random()}});
+// nebulae sit at fixed spots down the page and drift slower than the content, so they feel far away
+const NEB=[[.85,.18,'124,58,237',.16],[.1,.32,'59,91,219',.13],[.75,.5,'190,70,170',.1],[.2,.68,'124,58,237',.13],[.8,.84,'59,130,219',.1]];
+function fsize(){const r=Math.min(devicePixelRatio||1,2);FW=innerWidth;FH=innerHeight;fc.width=FW*r;fc.height=FH*r;fx.setTransform(r,0,0,r,0,0);
+  fs=Array.from({length:Math.round(FW*FH/3200)},()=>({x:Math.random()*FW,y:Math.random()*FH,z:Math.random()*.85+.15,p:Math.random()*6.3}));
+  DH=document.documentElement.scrollHeight}
+function field(now=0){fx.clearRect(0,0,FW,FH);const sy=scrollY,R=Math.max(FW,FH)*.55;
+  for(const[nx,ny,rgb,a]of NEB){const X=nx*FW,Y=ny*DH-sy*.75-FH*.1;if(Y<-R||Y>FH+R)continue;
+    const g=fx.createRadialGradient(X,Y,0,X,Y,R);g.addColorStop(0,`rgba(${rgb},${a})`);g.addColorStop(1,`rgba(${rgb},0)`);
+    fx.fillStyle=g;fx.fillRect(X-R,Y-R,R*2,R*2)}
+  // stars; when you scroll fast they stretch into light-speed streaks
+  vel+=(Math.max(-40,Math.min(40,sy-lastSy))-vel)*.25;lastSy=sy; // capped so menu-link jumps don't flash giant streaks
+  if(Math.abs(vel)<.5)vel=0;const warp=Math.abs(vel)>4&&!reduce;
+  fx.lineCap='round';
+  for(const s of fs){const y=((s.y-sy*s.z*.12)%FH+FH)%FH,tw=reduce?1:.55+.45*Math.sin(now*.0015+s.p);
+    if(warp){fx.strokeStyle=`rgba(236,231,255,${Math.min(1,s.z*.9)})`;fx.lineWidth=s.z*1.6;fx.beginPath();fx.moveTo(s.x,y);fx.lineTo(s.x,y+vel*s.z*2.2);fx.stroke();continue}
+    fx.fillStyle=`rgba(236,231,255,${s.z*tw*.8})`;fx.beginPath();fx.arc(s.x,y,s.z*1.15,0,7);fx.fill()}
+  // stardust trailing the cursor
+  dust=dust.filter(d=>d.life>0);
+  for(const d of dust){fx.fillStyle=`hsla(${d.h},90%,85%,${d.life})`;fx.beginPath();fx.arc(d.x,d.y,d.r*d.life+.3,0,7);fx.fill();
+    d.x+=d.vx;d.y+=d.vy;d.life-=.022}
+  // a comet every so often: slow, long tail, never in the way for long
+  if(!reduce&&Math.random()<.0018)comets.push({x:FW*(.3+Math.random()*.8),y:-20,vx:-(1.6+Math.random()),vy:1+Math.random()*.6,life:1});
+  comets=comets.filter(c=>c.life>0&&c.x>-200&&c.y<FH+200);
+  for(const c of comets){const tx=c.x-c.vx*60,ty=c.y-c.vy*60,g=fx.createLinearGradient(c.x,c.y,tx,ty);
+    g.addColorStop(0,`rgba(255,255,255,${.85*c.life})`);g.addColorStop(.3,`rgba(196,181,253,${.35*c.life})`);g.addColorStop(1,'rgba(124,58,237,0)');
+    fx.strokeStyle=g;fx.lineWidth=1.6;fx.beginPath();fx.moveTo(c.x,c.y);fx.lineTo(tx,ty);fx.stroke();
+    fx.fillStyle=`rgba(255,255,255,${c.life})`;fx.beginPath();fx.arc(c.x,c.y,1.8,0,7);fx.fill();
+    c.x+=c.vx;c.y+=c.vy;c.life-=.0025}
+  if(!reduce)requestAnimationFrame(field)}
+fsize();field();
+const og=document.getElementById('orbit-gal');
+// galaxy canvas sits inside the orbit (so scrolling can't shift it); the sprite is built once per size, then only spun
+let ogSpr,ogR,ogCtx;
+function sizeOrbitGal(){const d=Math.min(devicePixelRatio||1,2),w=og.clientWidth;ogR=w/2;og.width=og.height=Math.round(w*d);
+  ogCtx=og.getContext('2d');ogCtx.setTransform(d,0,0,d,0,0);
+  ogSpr=galSprite(ogR,SG,p=>`hsla(${p.d<.25?320:265-p.d*45},80%,${82-p.d*28+p.l*12}%,${.6-p.d*.42})`);drawOrbitGal(0)}
+function drawOrbitGal(rot){const g=ogCtx,R=ogR;g.clearRect(0,0,R*2,R*2);g.globalCompositeOperation='lighter';
+  const cg=g.createRadialGradient(R,R,0,R,R,R*.45);cg.addColorStop(0,'rgba(255,214,235,.32)');cg.addColorStop(.4,'rgba(167,139,250,.14)');cg.addColorStop(1,'rgba(124,58,237,0)');
+  g.fillStyle=cg;g.beginPath();g.ellipse(R,R,R*.45,R*.26,-.3,0,7);g.fill();
+  drawGal(g,ogSpr,R,R,R,-.3,.5,rot);g.globalCompositeOperation='source-over'}
+sizeOrbitGal();addEventListener('resize',sizeOrbitGal);
+if(!reduce)addEventListener('pointermove',e=>{if(e.pointerType!=='mouse'||hero.contains(e.target)||dust.length>140)return;
+  for(let i=0;i<2;i++)dust.push({x:e.clientX,y:e.clientY,vx:(Math.random()-.5)*.6,vy:Math.random()*.5+.1,r:Math.random()*1.6+.6,h:250+Math.random()*70,life:1})},{passive:true});
+addEventListener('load',()=>DH=document.documentElement.scrollHeight);
+const seen=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('seen');seen.unobserve(e.target)}}),{rootMargin:'0px 0px -20% 0px'});
+document.querySelectorAll('.journey .row').forEach(r=>seen.observe(r));
+addEventListener('resize',()=>{fsize();if(reduce)field()});
+if(reduce)addEventListener('scroll',()=>field(),{passive:true});
+document.fonts.ready.then(()=>{size();kick()}); // title height changes once the serif loads
+</script>
+
+</html>
